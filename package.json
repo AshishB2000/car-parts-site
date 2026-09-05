@@ -6,7 +6,7 @@
   "description": "Static reference site: every part of a car, what it does, and how it fails.",
   "scripts": {
     "build": "node --experimental-strip-types scripts/build-pages.mjs",
-    "test": "node --test --experimental-strip-types scripts/lib/",
+    "test": "node --experimental-strip-types --test \"scripts/lib/*.test.mjs\"",
     "sync:data": "node scripts/sync-data.mjs",
     "check:data": "node scripts/sync-data.mjs --check",
     "check:links": "node scripts/check-links.mjs",

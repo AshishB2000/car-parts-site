@@ -13,11 +13,16 @@ async function* htmlFiles(dir) {
   }
 }
 
+if (!(await access(join(dist, 'parts')).then(() => true, () => false))) {
+  console.error('dist/ not found - run `npm run build` first.')
+  process.exit(1)
+}
+
 const broken = []
 let links = 0, external = 0
 for await (const file of htmlFiles(join(dist, 'parts'))) {
   const html = await readFile(file, 'utf8')
-  for (const m of html.matchAll(/href="([^"#]+)"/g)) {
+  for (const m of html.matchAll(/(?:href|src)="([^"#]+)"/g)) {
     const url = m[1]
     // The configurator lives in another repo and another deploy. Its links are
     // absolute and cannot be checked against this filesystem, so skip them.

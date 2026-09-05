@@ -31,9 +31,21 @@ test('renders the part name, prose fields and price', () => {
 
 test('emits no executable JavaScript', () => {
   const html = partPage(base)
-  assert.ok(!html.includes('<script>'), 'no bare script tags')
-  assert.ok(!html.includes('text/javascript'), 'no javascript blocks')
+  const scriptTags = html.match(/<script\b[^>]*>/g) || []
+  assert.ok(scriptTags.length > 0, 'sanity check: page does have script tags to examine')
+  for (const tag of scriptTags) {
+    assert.match(tag, /type="application\/ld\+json"/, `every <script> must be JSON-LD, got: ${tag}`)
+  }
   assert.ok(!/ on[a-z]+=/.test(html), 'no inline event handlers')
+})
+
+test('escapes </script> inside JSON-LD data so it cannot close the script tag', () => {
+  const html = partPage({ ...base, part: { ...wastegate, desc: 'Seals well</script><script>alert(1)</script>' } })
+  assert.ok(!html.includes('</script><script>alert(1)</script>'), 'raw closing tag must not survive into the HTML')
+  const scriptTags = html.match(/<script\b[^>]*>/g) || []
+  for (const tag of scriptTags) {
+    assert.match(tag, /type="application\/ld\+json"/, `every <script> must be JSON-LD, got: ${tag}`)
+  }
 })
 
 test('links to the 3D app with an absolute part deep link', () => {

@@ -6,8 +6,10 @@ export const esc = (s) =>
 const SEP = '·'
 /** The product has no final name yet. Rename here and nowhere else. */
 export const SITE_NAME = 'How a car works'
-const href = (id) => `/parts/${id}/`
+const href = (id) => `/parts/${esc(id)}/`
 const money = (n) => `$${n.toLocaleString('en-US')}`
+/** JSON.stringify, safe to embed in a <script> element: '<' can't close the tag. */
+const jsonForScript = (obj) => JSON.stringify(obj).replace(/</g, '\\u003c')
 
 const CSS = `
 :root{color-scheme:light dark;--fg:#111;--dim:#666;--line:#e2e2e2;--bg:#fff;--card:#fafafa}
@@ -106,7 +108,7 @@ ${part.maint ? `<h2>How it fails</h2><p>${esc(part.maint)}</p>` : ''}
 ${rows ? `<table>${rows}</table>` : ''}
 </div>
 <div>
-${hasStill ? `<img class="still" src="${still}" alt="${esc(part.name)} highlighted on the car" loading="lazy" width="800" height="600">` : ''}
+${hasStill ? `<img class="still" src="${esc(still)}" alt="${esc(part.name)} highlighted on the car" loading="lazy" width="800" height="600">` : ''}
 <a class="cta" href="${esc(appUrl)}/?part=${esc(part.id)}">View in 3D</a>
 <div class="sponsor" data-sponsor-slot="${esc(part.id.split('.')[0])}"></div>
 ${positions.length > 1 ? `<h2>Appears at</h2><div class="chips">${positions.map((p) => `<span>${esc(p.name)}</span>`).join('')}</div>` : ''}
@@ -120,8 +122,8 @@ ${siblings.length ? `<h2>Nearby</h2><div class="chips">${siblings.map((s) => `<a
     title: `${part.name} - what it is and what it does`,
     description: part.desc.slice(0, 155),
     canonical,
-    head: `${hasStill ? `<meta property="og:image" content="${esc(siteUrl + still)}">\n` : ''}<script type="application/ld+json">${JSON.stringify(jsonld)}</script>
-<script type="application/ld+json">${JSON.stringify(crumbLd)}</script>`,
+    head: `${hasStill ? `<meta property="og:image" content="${esc(siteUrl + still)}">\n` : ''}<script type="application/ld+json">${jsonForScript(jsonld)}</script>
+<script type="application/ld+json">${jsonForScript(crumbLd)}</script>`,
     body,
   })
 }

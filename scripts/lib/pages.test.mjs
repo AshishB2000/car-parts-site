@@ -34,11 +34,20 @@ test('merges the four wheel corners into one canonical page', () => {
 })
 
 test('every part resolves to a page that exists', () => {
-  const allCollapsed = new Set([...collapsedUnder.values()].flat().map((c) => c.id))
   for (const p of PARTS) {
     const canon = canonicalOf.get(p.id)
     assert.ok(canon, `${p.id} has no canonical page`)
-    assert.ok(ids.has(canon) || allCollapsed.has(p.id), `${p.id} resolves to ${canon}, which is not a page`)
+    assert.ok(ids.has(canon), `${p.id} resolves to ${canon}, which is not a page`)
+  }
+})
+
+test('lug bolts collapsed under a merged parent still resolve to a real page', () => {
+  for (let i = 1; i <= 5; i++) {
+    const canon = canonicalOf.get(`wheels.fr.lugs.b${i}`)
+    assert.ok(ids.has(canon), `wheels.fr.lugs.b${i} resolves to ${canon}, which is not a page`)
+  }
+  for (const key of collapsedUnder.keys()) {
+    assert.ok(ids.has(key), `collapsedUnder has key ${key}, which is not a page`)
   }
 })
 

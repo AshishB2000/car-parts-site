@@ -27,6 +27,11 @@ for (const part of pages) {
   try {
     await page.goto(`${base}/?part=${part.id}`, { waitUntil: 'load' })
     await page.waitForFunction(() => window.__CAR || window.__ERR, null, { timeout: 60000 })
+    // Photo mode leaves one "Show UI · P" pill in the corner, the only button
+    // on screen once the panels are gone. A still is a picture, not an app: a
+    // painted-on button in every og:image is worse than no affordance at all.
+    // car-sim is a separate repo, so hide it from this side.
+    await page.addStyleTag({ content: 'button{display:none!important}' })
     await page.keyboard.press('p')     // photo mode hides the UI chrome
     await page.waitForTimeout(2500)    // let the camera finish its flight
     await page.screenshot({ path: out, type: 'jpeg', quality: 82 })

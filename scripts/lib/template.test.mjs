@@ -13,7 +13,8 @@ const wastegate = {
 const base = {
   part: wastegate,
   ancestors: [{ id: 'engine', name: 'S58 engine' }, { id: 'engine.turbo', name: 'Turbochargers' }],
-  children: [], collapsed: [], positions: [wastegate], siblings: [],
+  children: [], collapsed: [], positions: [], siblings: [],
+  nav: [{ id: 'engine', name: 'S58 engine' }, { id: 'body', name: 'Body' }],
   siteUrl: 'https://example.test', appUrl: 'https://app.example.test', hasStill: true,
 }
 
@@ -74,11 +75,36 @@ test('omits empty spec and material rows', () => {
   assert.ok(!html.includes('Material'), 'the row disappears entirely')
 })
 
+test('labels spec rows with a row header and no blank continuation cells', () => {
+  const html = partPage(base)  // the wastegate spec has two values, so it continues
+  assert.ok(html.includes('<th scope="row" rowspan="2">Spec</th>'), 'the label is a row header spanning its values')
+  assert.ok(!html.includes('<td></td>'), 'a continuation row must not emit a cell a screen reader reads as blank')
+})
+
+test('renders the header nav from the data it is given, not a hand-copied list', () => {
+  const html = partPage(base)
+  assert.ok(html.includes('<nav aria-label="Car subsystems">'), 'the nav is labelled')
+  assert.ok(html.includes('href="/parts/body/">Body</a>'))
+  assert.ok(!html.includes('/parts/interior/'), 'nothing appears that was not passed in')
+})
+
+test('carries a skip link and a main landmark so the header is skippable', () => {
+  const html = partPage(base)
+  assert.ok(html.includes('<a class="skip" href="#main">Skip to content</a>'))
+  assert.ok(html.includes('<main id="main">'))
+  assert.ok(html.includes('</main>'))
+})
+
+test('puts the parent in the title, since part names repeat across the car', () => {
+  assert.ok(partPage(base).includes('<title>Wastegate - Turbochargers</title>'))
+})
+
 test('renders an appears-at list only when the part has several positions', () => {
   assert.ok(!partPage(base).includes('Appears at'))
-  const many = partPage({ ...base, positions: [wastegate, { ...wastegate, id: 'x', name: 'Rear wastegate' }] })
+  const many = partPage({ ...base, positions: ['Front left wheel', 'Front right wheel'] })
   assert.ok(many.includes('Appears at'))
-  assert.ok(many.includes('Rear wastegate'))
+  assert.ok(many.includes('Front left wheel'))
+  assert.ok(many.includes('Front right wheel'))
 })
 
 test('renders collapsed children as plain text, not links', () => {
@@ -104,9 +130,10 @@ test('omits og:image when no still was rendered', () => {
 })
 
 test('index page lists every subsystem with its count', () => {
-  const html = indexPage({ subsystems: [{ part: { id: 'engine', name: 'S58 engine' }, count: 90 }], siteUrl: 'https://example.test' })
+  const html = indexPage({ subsystems: [{ part: { id: 'engine', name: 'S58 engine' }, count: 56 }], nav: [], siteUrl: 'https://example.test' })
   assert.ok(html.includes('href="/parts/engine/"'))
-  assert.ok(html.includes('90'))
+  assert.ok(html.includes('56 pages'), 'counts pages, which is what the links lead to, not parts')
+  assert.ok(html.includes('href="/parts/car/"'), 'the whole car is the best entry point and must be linked')
 })
 
 test('sitemap emits absolute urls', () => {

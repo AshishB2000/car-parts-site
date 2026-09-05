@@ -21,7 +21,12 @@ Set `SITE_URL` and `APP_URL` for real deploys, or every canonical, sitemap and
 ```bash
 npm test                                    # dedupe rules and template
 npm run check:data                          # vendored part data matches car-sim
+npm run build:stills                        # one render per page; needs car-sim running
 SITE_URL=https://site APP_URL=https://app npm run build
 npm run check:links                         # every internal link must resolve
-npm run build:stills                        # one render per page; needs car-sim running
 ```
+
+Stills are rendered before the pages: the generator looks for `still.jpg` on disk
+as it writes each page and only emits the image and its `og:image` when one is
+already there. Render stills after a build and the pages will not mention them
+until the next build.

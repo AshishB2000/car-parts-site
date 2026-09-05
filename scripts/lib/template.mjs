@@ -26,24 +26,21 @@ h2{font-size:14px;color:var(--dim);margin:22px 0 4px;font-weight:600}
 .cols{display:grid;grid-template-columns:1fr;gap:28px}
 @media(min-width:760px){.cols{grid-template-columns:1.15fr 1fr}}
 table{width:100%;border-collapse:collapse;font-size:14px;margin-top:18px}
-td{padding:7px 0;border-top:1px solid var(--line)}
+td,th{padding:7px 0;border-top:1px solid var(--line)}
+th{text-align:left;font-weight:600;color:var(--dim);vertical-align:top}
 td:last-child{text-align:right}
 .still{width:100%;border-radius:10px;border:1px solid var(--line);display:block}
 .cta{display:inline-block;margin-top:10px;padding:9px 16px;border:1px solid var(--line);border-radius:8px;text-decoration:none;background:var(--card)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;font-size:14px;margin-top:6px}
 .chips a,.chips span{border:1px solid var(--line);border-radius:7px;padding:3px 10px;text-decoration:none}
 .sponsor{margin-top:14px;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--dim)}
+.sponsor:empty{display:none}
+.skip{position:absolute;left:-9999px}
+.skip:focus{position:static;display:inline-block;padding:8px 0}
 footer{border-top:1px solid var(--line);margin-top:44px;padding:18px 0;font-size:13px;color:var(--dim)}
 `
 
-const SUBSYSTEM_NAV = [
-  ['engine', 'Engine'], ['drivetrain', 'Drivetrain'], ['wheels', 'Wheels'],
-  ['suspension', 'Suspension'], ['cooling', 'Cooling'], ['fuel', 'Fuel'],
-  ['exhaust', 'Exhaust'], ['electrical', 'Electrical'], ['body', 'Body'],
-  ['interior', 'Interior'], ['chassis', 'Chassis'],
-]
-
-const shell = ({ title, description, canonical, head = '', body }) => `<!doctype html>
+const shell = ({ title, description, canonical, nav = [], head = '', body }) => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -60,22 +57,29 @@ ${head}
 </head>
 <body>
 <div class="wrap">
+<a class="skip" href="#main">Skip to content</a>
 <header>
 <strong><a href="/parts/" style="text-decoration:none">${esc(SITE_NAME)}</a></strong>
-<nav>${SUBSYSTEM_NAV.map(([id, label]) => `<a href="${href(id)}">${esc(label)}</a>`).join('')}</nav>
+<nav aria-label="Car subsystems">${nav.map((s) => `<a href="${href(s.id)}">${esc(s.name)}</a>`).join('')}</nav>
 </header>
-${body}
+<main id="main">${body}</main>
 <footer>Shown on a BMW M4 CSL. Model by Black Snow, CC BY 4.0.</footer>
 </div>
 </body>
 </html>`
 
-/** One row per separated segment, skipping blanks. */
-const specRows = (label, value) =>
-  String(value || '').split(SEP).map((s) => s.trim()).filter(Boolean)
-    .map((v, i) => `<tr><td>${i === 0 ? esc(label) : ''}</td><td>${esc(v)}</td></tr>`).join('')
+/**
+ * One row per separated segment, skipping blanks. The label is a row header
+ * spanning its values, so continuation rows carry no empty cell for a screen
+ * reader to announce as "blank".
+ */
+const specRows = (label, value) => {
+  const vals = String(value || '').split(SEP).map((s) => s.trim()).filter(Boolean)
+  return vals.map((v, i) =>
+    `<tr>${i === 0 ? `<th scope="row" rowspan="${vals.length}">${esc(label)}</th>` : ''}<td>${esc(v)}</td></tr>`).join('')
+}
 
-export function partPage({ part, ancestors, children, collapsed, positions, siblings, siteUrl, appUrl, hasStill }) {
+export function partPage({ part, ancestors, children, collapsed, positions, siblings, nav, siteUrl, appUrl, hasStill }) {
   const canonical = `${siteUrl}${href(part.id)}`
   const still = `${href(part.id)}still.jpg`
   const crumb = ['<a href="/parts/">All parts</a>']
@@ -111,7 +115,7 @@ ${rows ? `<table>${rows}</table>` : ''}
 ${hasStill ? `<img class="still" src="${esc(still)}" alt="${esc(part.name)} highlighted on the car" loading="lazy" width="800" height="600">` : ''}
 <a class="cta" href="${esc(appUrl)}/?part=${esc(part.id)}">View in 3D</a>
 <div class="sponsor" data-sponsor-slot="${esc(part.id.split('.')[0])}"></div>
-${positions.length > 1 ? `<h2>Appears at</h2><div class="chips">${positions.map((p) => `<span>${esc(p.name)}</span>`).join('')}</div>` : ''}
+${positions.length > 1 ? `<h2>Appears at</h2><div class="chips">${positions.map((label) => `<span>${esc(label)}</span>`).join('')}</div>` : ''}
 ${children.length ? `<h2>Inside this part</h2><div class="chips">${children.map((c) => `<a href="${href(c.id)}">${esc(c.name)}</a>`).join('')}</div>` : ''}
 ${collapsed.length ? `<h2>Individual units</h2><div class="chips">${collapsed.map((c) => `<span>${esc(c.name)}</span>`).join('')}</div>` : ''}
 ${siblings.length ? `<h2>Nearby</h2><div class="chips">${siblings.map((s) => `<a href="${href(s.id)}">${esc(s.name)}</a>`).join('')}</div>` : ''}
@@ -119,25 +123,29 @@ ${siblings.length ? `<h2>Nearby</h2><div class="chips">${siblings.map((s) => `<a
 </div>`
 
   return shell({
-    title: `${part.name} - what it is and what it does`,
+    // The parent's name is what tells 240 pages apart in a search result: a
+    // dozen names ("Housing", "Tire") repeat, their parents do not.
+    title: parent ? `${part.name} - ${parent.name}` : `${part.name} - what it is and what it does`,
     description: part.desc.slice(0, 155),
     canonical,
+    nav,
     head: `${hasStill ? `<meta property="og:image" content="${esc(siteUrl + still)}">\n` : ''}<script type="application/ld+json">${jsonForScript(jsonld)}</script>
 <script type="application/ld+json">${jsonForScript(crumbLd)}</script>`,
     body,
   })
 }
 
-export function indexPage({ subsystems, siteUrl }) {
+export function indexPage({ subsystems, nav, siteUrl }) {
   const body = `
 <h1>${esc(SITE_NAME)}</h1>
-<p style="color:var(--dim)">Every part of a BMW M4 CSL, what it does, and how it fails. Pick a system to start.</p>
+<p style="color:var(--dim)">Every part of a BMW M4 CSL, what it does, and how it fails. Start with <a href="/parts/car/">the whole car</a>, or pick a system.</p>
 <table>${subsystems.map(({ part, count }) =>
-    `<tr><td><a href="${href(part.id)}">${esc(part.name)}</a></td><td>${count} parts</td></tr>`).join('')}</table>`
+    `<tr><th scope="row"><a href="${href(part.id)}">${esc(part.name)}</a></th><td>${count} pages</td></tr>`).join('')}</table>`
   return shell({
     title: `${SITE_NAME} - every part of a BMW M4 CSL`,
     description: 'An explorable reference for every part of a car: what it is, what it does, how it fails, and what it costs.',
     canonical: `${siteUrl}/parts/`,
+    nav,
     body,
   })
 }

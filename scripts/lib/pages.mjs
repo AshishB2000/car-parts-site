@@ -83,3 +83,75 @@ export function selectPages(parts) {
 
   return { pages, canonicalOf, collapsedUnder, positionsOf }
 }
+
+/**
+ * Labels for the "appears at" chips. Merged parts share a name by construction,
+ * so the name itself says nothing: the label is the nearest ancestor that tells
+ * the positions apart (the parent for most sets, the grandparent for the three
+ * tire layers, whose parents are all named "Tire"). Returns [] when even that
+ * collides, since printing one word four times is worse than printing nothing.
+ */
+function positionLabels(positions, byId) {
+  if (positions.length < 2) return []
+  for (const up of [1, 2]) {
+    const labels = positions.map((p) => {
+      let cur = p
+      for (let i = 0; i < up && cur; i++) cur = byId.get(cur.parent)
+      return cur?.name
+    })
+    if (labels.every(Boolean) && new Set(labels).size === labels.length) return labels
+  }
+  return []
+}
+
+/**
+ * The link graph: for every page, the parts it links to. This is selection
+ * logic, not I/O, so it lives here under test rather than in the generator.
+ *
+ * `parts` is the full list; `selection` is the result of selectPages.
+ * Returns Map<pageId, { ancestors, children, siblings, collapsed, positions }>
+ * where positions is an array of label strings, not parts.
+ */
+export function pageLinks(parts, { pages, canonicalOf, collapsedUnder, positionsOf }) {
+  const byId = new Map(parts.map((p) => [p.id, p]))
+  const kidsOf = new Map()
+  for (const p of parts) {
+    if (!kidsOf.has(p.parent)) kidsOf.set(p.parent, [])
+    kidsOf.get(p.parent).push(p)
+  }
+  const pageIds = new Set(pages.map((p) => p.id))
+  /** The page that covers this part, or null when nothing covers it. */
+  const toPage = (id) => {
+    const canon = canonicalOf.get(id)
+    return pageIds.has(canon) ? canon : null
+  }
+  const linked = (parts_, selfId) => {
+    const out = []
+    for (const p of parts_) {
+      const id = toPage(p.id)
+      if (id && id !== selfId && !out.includes(id)) out.push(id)
+    }
+    return out.map((id) => byId.get(id))
+  }
+
+  const links = new Map()
+  for (const part of pages) {
+    const ancestors = []
+    for (let cur = byId.get(part.parent); cur; cur = byId.get(cur.parent)) ancestors.unshift(cur)
+
+    const collapsed = collapsedUnder.get(part.id) ?? []
+    // A collapsed member's own children (piston 1's rings, pin and rod) are
+    // canonical for the whole set, so they must surface on the parent's page.
+    // Without this they are generated but unreachable by crawling.
+    const childParts = [...(kidsOf.get(part.id) ?? []), ...collapsed.flatMap((m) => kidsOf.get(m.id) ?? [])]
+
+    links.set(part.id, {
+      ancestors: linked(ancestors, part.id),
+      children: linked(childParts, part.id),
+      siblings: linked(kidsOf.get(part.parent) ?? [], part.id).slice(0, 8),
+      collapsed,
+      positions: positionLabels(positionsOf.get(part.id) ?? [], byId),
+    })
+  }
+  return links
+}

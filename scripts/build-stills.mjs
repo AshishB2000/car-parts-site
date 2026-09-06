@@ -55,7 +55,9 @@ for (const part of pages) {
     // Write then rename. A run killed mid-screenshot would otherwise leave a
     // truncated jpeg that the skip-if-exists check above keeps forever, and a
     // broken image is worse than a page with none.
-    await page.screenshot({ path: `${out}.tmp`, type: 'jpeg', quality: 82 })
+    // 90s, not the 30s default: screenshot waits for web fonts, and on a loaded
+    // machine that wait alone blew the cap on 13 of 240 parts in a real run.
+    await page.screenshot({ path: `${out}.tmp`, type: 'jpeg', quality: 82, timeout: 90000 })
     await rename(`${out}.tmp`, out)
     await page.keyboard.press('p')
     done++

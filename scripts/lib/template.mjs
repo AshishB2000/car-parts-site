@@ -113,7 +113,7 @@ ${rows ? `<table>${rows}</table>` : ''}
 </div>
 <div>
 ${hasStill ? `<img class="still" src="${esc(still)}" alt="${esc(part.name)} highlighted on the car" loading="lazy" width="800" height="600">` : ''}
-<a class="cta" href="${esc(appUrl)}/?part=${esc(part.id)}">View in 3D</a>
+${appUrl ? `<a class="cta" href="${esc(appUrl)}/?part=${esc(part.id)}">View in 3D</a>` : ''}
 <div class="sponsor" data-sponsor-slot="${esc(part.id.split('.')[0])}"></div>
 ${positions.length > 1 ? `<h2>Appears at</h2><div class="chips">${positions.map((label) => `<span>${esc(label)}</span>`).join('')}</div>` : ''}
 ${children.length ? `<h2>Inside this part</h2><div class="chips">${children.map((c) => `<a href="${href(c.id)}">${esc(c.name)}</a>`).join('')}</div>` : ''}

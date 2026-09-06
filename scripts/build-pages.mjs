@@ -11,9 +11,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = join(root, 'dist')
 
 const siteUrl = (process.env.SITE_URL ?? 'http://localhost:8080').replace(/\/$/, '')
-const appUrl = (process.env.APP_URL ?? 'http://localhost:4173').replace(/\/$/, '')
+// Empty APP_URL means the configurator is not deployed: pages then omit the
+// "View in 3D" link entirely rather than pointing at somewhere that 404s.
+const appUrl = (process.env.APP_URL ?? '').replace(/\/$/, '')
 if (!process.env.SITE_URL) console.warn('! SITE_URL is unset, canonical and sitemap URLs will point at localhost')
-if (!process.env.APP_URL) console.warn('! APP_URL is unset, every "View in 3D" link will point at localhost')
+if (!appUrl) console.warn('! APP_URL is unset, pages will omit the "View in 3D" link')
 
 const selection = selectPages(PARTS)
 const { pages } = selection

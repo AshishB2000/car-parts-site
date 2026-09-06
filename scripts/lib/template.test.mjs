@@ -49,6 +49,13 @@ test('escapes </script> inside JSON-LD data so it cannot close the script tag', 
   }
 })
 
+test('omits the 3D link entirely when no app url is configured', () => {
+  const html = partPage({ ...base, appUrl: '' })
+  assert.ok(!html.includes('View in 3D'), 'no dead button when the configurator is not deployed')
+  assert.ok(!html.includes('class="cta"'))
+  assert.ok(html.includes('<h1>Wastegate</h1>'), 'the rest of the page is unaffected')
+})
+
 test('links to the 3D app with an absolute part deep link', () => {
   assert.ok(partPage(base).includes('href="https://app.example.test/?part=engine.turbo.t1.wastegate"'))
 })

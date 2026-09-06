@@ -26,6 +26,12 @@ SITE_URL=https://site APP_URL=https://app npm run build
 npm run check:links                         # every internal link must resolve
 ```
 
+Rendering stills needs two things beyond a running configurator. Chromium must be
+installed, via `npx playwright install chromium` or a `PLAYWRIGHT_BROWSERS_PATH`
+pointing at an existing one. And it must run outside a sandboxed shell, which
+denies Chromium the Mach bootstrap port it needs on macOS. The script names both
+failures in one line rather than printing a stack trace.
+
 Stills are rendered before the pages: the generator looks for `still.jpg` on disk
 as it writes each page and only emits the image and its `og:image` when one is
 already there. Render stills after a build and the pages will not mention them
